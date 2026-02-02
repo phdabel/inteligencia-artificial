@@ -50,5 +50,18 @@ class Graph:
         return self.adj.get(node_id, [])
     
 
+    def to_networkx(self):
+        import networkx as nx
+        G = nx.DiGraph() if self.directed else nx.Graph()
+        for node_id in self.nodes:
+            G.add_node(node_id, **self.nodes[node_id].data)
+        for u, neighbors in self.adj.items():
+            for v, weight in neighbors:
+                if not self.directed and G.has_edge(v, u):
+                    continue  # avoid adding duplicate edges in undirected graph
+                G.add_edge(u, v, weight=weight)
+        return G
+    
+
     def __repr__(self) -> str:
         return f"Graph(directed={self.directed}, |V|={len(self.nodes)}, |E|={sum(len(v) for v in self.adj.values())})"
