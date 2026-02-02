@@ -47,7 +47,7 @@ def dfs(problem: Problem[S, A], depth_limit: Optional[int] = None) -> SearchResu
     t0 = time.perf_counter()
     start = problem.initial_state()
 
-    stack = List[Tuple[S, int]] = [(start, 0)]
+    stack: List[Tuple[S, int]] = [(start, 0)]
     parent: Dict[S, Tuple[Optional[S], Optional[A]]] = {start: (None, None)}
     cost: Dict[S, float] = {start: 0.0}
 
@@ -152,4 +152,81 @@ def bidirectional_search(problem: Problem[S, A], goal_state: S) -> SearchResult[
     Busca bidirecional para problemas de busca não ponderados.
     Retorna um SearchResult com o resultado da busca.
     
+    A busca bidirecional requer:
+        - um estado objetivo específico, não apenas um objetivo teste.
+        - a habilidade de gerar predecessores (estados anteriores), ou sucessores simétricos.
     """
+    t0 = time.perf_counter()
+    start = problem.initial_state()
+
+    if start == goal_state:
+        return SearchResult(True, start, [], 0.0, 0, 1, 1, (time.perf_counter() - t0) * 1000)
+    
+    q_f = deque([start])
+    q_b = deque([goal_state])
+
+    parent_f: Dict[S, Tuple[Optional[S], Optional[A]]] = {start: (None, None)}
+    parent_b: Dict[S, Tuple[Optional[S], Optional[A]]] = {goal_state: (None, None)}
+
+    expanded = 0
+    generated = 2
+    max_frontier = 2
+
+    meet: Optional[S] = None
+
+    def expand_frontier(
+            q: deque[S],
+            parent_this: Dict[S, Tuple[Optional[S], Optional[A]]],
+            parent_other: Dict[S, Tuple[Optional[S], Optional[A]]],
+            forward: bool
+    ) -> Optional[S]:
+        nonlocal expanded, generated
+        s = q.popleft()
+        expanded += 1
+
+        if forward:
+            steps = problem.successors(s)
+        else:
+            steps = problem.predecessors(s)
+
+        for a, s2, _ in steps:
+            if s2 not in parent_this:
+                parent_this[s2] = (s, a)
+                q.append(s2)
+                generated += 1
+                if s2 in parent_other:
+                    return s2
+        return None
+    
+    while q_f and q_b:
+        max_frontier = max(max_frontier, len(q_f) + len(q_b))
+
+        # expandir a fronteira menor
+        if len(q_f) < len(q_b):
+            meet = expand_frontier(q_f, parent_f, parent_b, forward=True)
+        else:
+            meet = expand_frontier(q_b, parent_b, parent_f, forward=False)
+
+        if meet is not None:
+            break
+
+    if meet is None:
+        return SearchResult(False, None, [], float("inf"), expanded, generated, max_frontier, (time.perf_counter() - t0) * 1000)
+    
+    # reconstruir o caminho: start (forward) -> meet -> goal (backward)
+    actions_f = _reconstruct(parent_f, meet)
+
+    # reconstruir o caminho backward e inverter
+    actions_b_rev: List[A] = []
+    cur = meet
+    while cur != goal_state:
+        prev, act = parent_b[cur]
+        if prev is None:
+            break
+        actions_b_rev.append(act)
+        cur = prev
+
+    actions = actions_f + actions_b_rev
+
+    return SearchResult(True, meet, actions, float("nan"), expanded, generated, max_frontier, (time.perf_counter() - t0) * 1000)
+
