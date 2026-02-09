@@ -6,13 +6,15 @@ import heapq
 
 def bfs(problem: Problem[S, A]) -> SearchResult[S, A]:
     """
-    Busca em extensão (BFS) para problemas de busca não ponderados.
+    Busca em extensão (BFS) para problemas de busca.
     Retorna um SearchResult com o resultado da busca.
+    O(b^d) espaço e tempo, onde b é o fator de ramificação e d é a profundidade da solução mais rasa.
+    Note que a solução mais rasa pode não ser a solução ótima se os custos dos passos não forem uniformes. Se os custos forem uniformes, BFS é ótimo.
     """
     t0 = time.perf_counter()
     start = problem.initial_state()
 
-    frontier = deque([start])
+    frontier = deque([start]) # double-ended queue para mais eficiência em operações de fila
     parent: Dict[S, Tuple[Optional[S], Optional[A]]] = {start: (None, None)}
     cost: Dict[S, float] = {start: 0.0}
 
@@ -22,7 +24,7 @@ def bfs(problem: Problem[S, A]) -> SearchResult[S, A]:
 
     while frontier:
         max_frontier = max(max_frontier, len(frontier))
-        s = frontier.popleft()
+        s = frontier.popleft() # remove o primeiro estado adicionado (fila FIFO)
 
         if problem.is_goal(s):
             actions = _reconstruct(parent, s)
@@ -33,7 +35,7 @@ def bfs(problem: Problem[S, A]) -> SearchResult[S, A]:
             if s2 not in parent:
                 parent[s2] = (s, a)
                 cost[s2] = cost[s] + step
-                frontier.append(s2)
+                frontier.append(s2) # adiciona no final da fila o novo estado (FIFO)
                 generated += 1
 
     return SearchResult(False, None, [], float("inf"), expanded, generated, max_frontier, (time.perf_counter() - t0) * 1000)
@@ -42,7 +44,11 @@ def bfs(problem: Problem[S, A]) -> SearchResult[S, A]:
 def dfs(problem: Problem[S, A], depth_limit: Optional[int] = None) -> SearchResult[S, A]:
     """
     Busca em profundidade (DFS) para problemas de busca não ponderados.
+    Opcionalmente com limite de profundidade, para evitar ciclos ou exploração excessiva.
     Retorna um SearchResult com o resultado da busca.
+    O(b^m) tempo e O(bm) espaço, onde b é o fator de ramificação e m é a profundidade máxima do espaço de estados.
+    Note que DFS não é ótimo nem completo em grafos infinitos ou com ciclos.
+    Para profundidade limitada, a complexidade é O(b^l) tempo e O(bl) espaço, onde l é o limite de profundidade.
     """
     t0 = time.perf_counter()
     start = problem.initial_state()
@@ -57,7 +63,7 @@ def dfs(problem: Problem[S, A], depth_limit: Optional[int] = None) -> SearchResu
 
     while stack:
         max_frontier = max(max_frontier, len(stack))
-        s, d = stack.pop()
+        s, d = stack.pop() # remove o último estado adicionado (pilha LIFO)
 
         if problem.is_goal(s):
             actions = _reconstruct(parent, s)
@@ -83,6 +89,7 @@ def ucs(problem: Problem[S, A]) -> SearchResult[S, A]:
     Se os custos forem todos iguais, UCS se comporta como BFS.
     Algoritmo ótimo e completo para custos não negativos.
     Retorna um SearchResult com o resultado da busca.
+    O(b^{1+\floor(C*/e)}) tempo e espaço, onde C* é o custo da solução ótima e e é o menor custo de passo.
     """
     t0 = time.perf_counter()
     start = problem.initial_state()

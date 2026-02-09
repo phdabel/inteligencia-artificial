@@ -3,6 +3,7 @@ from structures.problem import Problem
 from structures.graph import Graph
 from typing import (List, Dict, Tuple, Any, Optional, Iterable)
 
+
 @dataclass(frozen=True)
 class AssignAction:
     region: str
@@ -39,12 +40,13 @@ class MapColoringProblem(Problem[ColoringState, Any]):
         self.G = constraint_graph
         self.colors = colors
         self.order = order
-
+        
         missing = [v for v in order if v not in self.G.nodes]
         if missing:
             raise ValueError(f"Order contains unknown regions: {missing}")
         
     def initial_state(self) -> ColoringState:
+        # initialize with all regions colored with the same color
         return ColoringState(assignments=tuple())
     
     def is_goal(self, state: ColoringState) -> bool:
@@ -63,7 +65,7 @@ class MapColoringProblem(Problem[ColoringState, Any]):
             if nbr in A and A[nbr] == color:
                 return False
         return True
-    
+        
     def successors(self, state: ColoringState) -> Iterable[Tuple[Any, ColoringState, float]]:
         A = state.as_dict()
         region = self._next_region(state)
@@ -100,5 +102,3 @@ class MapColoringProblem(Problem[ColoringState, Any]):
         del A2[last_region]
         prev_state = ColoringState(assignments=tuple(sorted(A2.items())))
         yield UnassignAction(last_region), prev_state, 1.0
-        
-    
