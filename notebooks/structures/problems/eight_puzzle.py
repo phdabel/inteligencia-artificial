@@ -25,7 +25,7 @@ class EightPuzzleProblem(Problem[PuzzleState, Move]):
     def __init__(
         self,
         initial: Tuple[int, ...],
-        goal: Tuple[int, ...] = (1, 2, 3, 4, 5, 6, 7, 8, 0),
+        goal: Tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6, 7, 8)
     ):
         self._initial = PuzzleState(initial)
         self._goal = PuzzleState(goal)
